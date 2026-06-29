@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}În Curând — CineMatch{% endblock %}
+
+{% block content %}
+
+<section class="upcoming-hero">
+    <div class="upcoming-hero-bg"></div>
+    <div class="upcoming-hero-content">
+        <p class="upcoming-eyebrow">MACHINE LEARNING · PREDICȚIE</p>
+        <h1 class="upcoming-title">În Curând<br>pe Marile Ecrane</h1>
+        <p class="upcoming-sub">Algoritmul nostru analizează gen, regizor, buget și alți factori pentru a prezice succesul fiecărui film.</p>
+    </div>
+</section>
+
+<section class="upcoming-section">
+
+    <div id="upcoming-empty" class="upcoming-empty {% if movies %}hidden{% endif %}">
+        <p>Niciun film upcoming adăugat încă.</p>
+        <p style="color:#666; font-size:.9rem; margin-top:.5rem;">Filmele upcoming sunt importate din TMDB prin scriptul de configurare.</p>
+    </div>
+
+    <div class="upcoming-grid" id="upcoming-grid">
+        {% for movie in movies %}
+        {% include "partials/upcoming_card.html" %}
+        {% endfor %}
+    </div>
+
+</section>
+
+<!-- ═══════════ HOW IT WORKS ═══════════ -->
+<section class="how-section">
+    <h2 class="section-title" style="text-align:center; margin-bottom:3rem;">Cum funcționează predicția</h2>
+    <div class="how-grid">
+        <div class="how-card">
+            <div class="how-number">01</div>
+            <h3>Colectare date</h3>
+            <p>Extragem informații despre gen, regizor, actori, buget, studio și dacă filmul face parte dintr-un franchise.</p>
+        </div>
+        <div class="how-card">
+            <div class="how-number">02</div>
+            <h3>Feature Engineering</h3>
+            <p>Transformăm datele calitative în vectori numerici: gen → one-hot, buget → scală ordinală, regizor → rating mediu istoric.</p>
+        </div>
+        <div class="how-card">
+            <div class="how-number">03</div>
+            <h3>Random Forest</h3>
+            <p>Modelul antrenat pe 9.000+ filme din MovieLens prezice ratingul estimat pe o scară de la 1.0 la 5.0.</p>
+        </div>
+        <div class="how-card">
+            <div class="how-number">04</div>
+            <h3>Scor & Box Office</h3>
+            <p>Pe baza rating-ului prezis și categoriei de buget, estimăm și intervalul de box office.</p>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+

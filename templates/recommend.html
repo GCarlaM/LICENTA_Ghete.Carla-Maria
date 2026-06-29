@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Recomandări — CineMatch{% endblock %}
+{% block content %}
+<section class="browse-section">
+    <div class="browse-header">
+        <h2 class="section-title">Recomandări pentru tine</h2>
+        <p style="color:var(--muted); font-size:.9rem;">Generate de modelul SVD pe baza ratingurilor tale — filtrare colaborativă</p>
+    </div>
+    <div id="recs-loading" class="loading-state"><div class="spinner"></div><p>Se generează recomandări...</p></div>
+    <div id="recs-grid" class="movies-grid" style="display:none"></div>
+    <div id="recs-empty" class="empty-results hidden">
+        <p>Acordă cel puțin 3 ratinguri filmelor pentru a primi recomandări personalizate prin SVD!</p>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+fetch('/api/recommendations').then(r=>r.json()).then(data=>{
+    document.getElementById('recs-loading').style.display='none';
+    const recs = data.recommendations || [];
+    if(!recs.length){ document.getElementById('recs-empty').classList.remove('hidden'); return; }
+    const grid = document.getElementById('recs-grid');
+    grid.style.display='grid';
+    recs.forEach((m,i)=>{
+        // poster real daca exista, altfel fallback elegant cu emoji
+        const poster = m.poster_url
+            ? `<img src="${m.poster_url}" alt="${m.title}" class="card-poster-img" loading="lazy">`
+            : `<div class="card-poster-inner"><span class="card-emoji">🎬</span></div>`;
+        grid.innerHTML += `
+        <a href="/movie/${m.movie_id}" class="movie-card" style="--card-i:${i+1}">
+            <div class="card-poster">
+                ${poster}
+                <div class="card-overlay"><span class="card-play">▶</span></div>
+                <div class="card-rating-chip">🤖 ${m.predicted_rating}</div>
+            </div>
+            <div class="card-body">
+                <h3 class="card-title">${m.title}</h3>
+                <div class="card-meta">
+                    <span class="card-year">${m.year || '—'}</span>
+                    <span style="color:var(--accent);font-size:.75rem;">prezis SVD: ${m.predicted_rating}</span>
+                </div>
+            </div>
+        </a>`;
+    });
+}).catch(()=>{
+    document.getElementById('recs-loading').style.display='none';
+    document.getElementById('recs-empty').classList.remove('hidden');
+});
+</script>
+{% endblock %}

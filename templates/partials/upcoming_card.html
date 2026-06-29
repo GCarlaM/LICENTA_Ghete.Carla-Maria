@@ -1,0 +1,81 @@
+<div class="upc-card" style="--accent: {{ movie.poster_color }}">
+    <div class="upc-poster" style="background: linear-gradient(135deg, {{ movie.poster_color }}cc, {{ movie.poster_color }}22)">
+        {% if movie.poster_url %}
+        <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" class="upc-poster-img">
+        {% else %}
+        <div class="upc-poster-icon">🎬</div>
+        {% endif %}
+        <div class="upc-release-badge">{{ movie.release_date }}</div>
+        {% if movie.franchise %}
+        <div class="upc-franchise-badge">Franchise</div>
+        {% endif %}
+    </div>
+
+    <div class="upc-body">
+        <div class="upc-genres">
+            {% for g in movie.genres_list()[:3] %}
+            <span class="upc-genre-tag">{{ g }}</span>
+            {% endfor %}
+        </div>
+
+        <h3 class="upc-title">{{ movie.title }}</h3>
+        {% if movie.tagline %}
+        <p class="upc-tagline">„{{ movie.tagline }}"</p>
+        {% endif %}
+
+        <div class="upc-meta">
+            {% if movie.director %}
+            <div class="upc-meta-row">
+                <span class="upc-meta-label">Regizor</span>
+                <span class="upc-meta-val">{{ movie.director }}</span>
+            </div>
+            {% endif %}
+            {% if movie.lead_actors %}
+            <div class="upc-meta-row">
+                <span class="upc-meta-label">Actori</span>
+                <span class="upc-meta-val">{{ movie.lead_actors }}</span>
+            </div>
+            {% endif %}
+            {% if movie.studio %}
+            <div class="upc-meta-row">
+                <span class="upc-meta-label">Studio</span>
+                <span class="upc-meta-val">{{ movie.studio }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Prediction Result -->
+        <div class="upc-prediction" id="pred-{{ movie.id }}">
+            {% if movie.predicted_rating %}
+            {% set pct = ((movie.predicted_rating - 1) / 4 * 100) | int %}
+            <div class="pred-header">
+                <span class="pred-label">Predicție ML</span>
+                <span class="pred-confidence pred-confidence--{{ movie.prediction_confidence or 'medium' }}">
+                    {{ movie.prediction_confidence | upper if movie.prediction_confidence else 'MEDIUM' }}
+                </span>
+            </div>
+            <div class="pred-score-row">
+                <span class="pred-score">{{ "%.2f"|format(movie.predicted_rating) }}</span>
+                <span class="pred-scale">/ 5.00</span>
+                <span class="pred-boxoffice">🎟 {{ movie.predicted_box_office }}</span>
+            </div>
+            <div class="pred-bar-track">
+                <div class="pred-bar-fill" style="--pct: {{ pct }}%; --bar-color: {% if movie.predicted_rating >= 4.0 %}#22c55e{% elif movie.predicted_rating >= 3.2 %}#f5c518{% else %}#ef4444{% endif %}"></div>
+            </div>
+            <div class="pred-breakdown">
+                <span>Buget: <strong>{{ movie.budget_category | title }}</strong></span>
+                {% if movie.director_past_avg %}
+                <span>Regizor avg: <strong>{{ "%.1f"|format(movie.director_past_avg) }}★</strong></span>
+                {% endif %}
+                {% if movie.sequel_number and movie.sequel_number > 1 %}
+                <span>Sequel #{{ movie.sequel_number }}</span>
+                {% endif %}
+            </div>
+            {% else %}
+            <button class="pred-run-btn" onclick="runPred({{ movie.id }})">
+                🔮 Rulează predicția
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>

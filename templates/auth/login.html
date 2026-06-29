@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% block title %}Login — CineMatch{% endblock %}{% block content %}
+<div class="auth-wrap">
+    <div class="auth-card">
+        <div class="auth-brand"><span class="brand-cm">CINE</span><span class="brand-match">MATCH</span></div>
+        <h2 class="auth-title">Bun venit înapoi</h2>
+        <form method="POST">
+            <div class="form-field">
+                <label>Email</label>
+                <input type="email" name="email" required placeholder="email@exemplu.com">
+            </div>
+            <div class="form-field">
+                <label>Parolă</label>
+                <input type="password" name="password" required placeholder="••••••••">
+            </div>
+            <label class="check-label"><input type="checkbox" name="remember"> Ține-mă minte</label>
+            <button type="submit" class="auth-btn">Autentificare</button>
+        </form>
+        <p class="auth-switch">Nu ai cont? <a href="{{ url_for('auth.register') }}">Înregistrează-te</a></p>
+    </div>
+</div>
+{% endblock %}

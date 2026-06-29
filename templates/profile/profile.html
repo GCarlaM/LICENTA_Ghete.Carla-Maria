@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}{{ user.username }} — CineMatch{% endblock %}
+
+{% block content %}
+<div class="profile-wrap">
+
+    <!-- ── HEADER ── -->
+    <div class="profile-header">
+        <div class="profile-header-bg"></div>
+        <div class="profile-header-inner">
+
+            <div class="profile-avatar" style="--av-color: {{ user.avatar_color or '#e8000d' }}">
+                {{ user.initials }}
+            </div>
+
+            <div class="profile-header-info">
+                <h1 class="profile-username">{{ user.username }}</h1>
+                {% if user.bio %}
+                <p class="profile-bio">{{ user.bio }}</p>
+                {% endif %}
+                <div class="profile-meta-row">
+                    {% if user.location %}
+                    <span class="profile-meta-item">📍 {{ user.location }}</span>
+                    {% endif %}
+                    {% if user.favorite_genre %}
+                    <span class="profile-meta-item">🎬 {{ user.favorite_genre }}</span>
+                    {% endif %}
+                    <span class="profile-meta-item">Membru din {{ user.created_at.strftime("%B %Y") }}</span>
+                </div>
+            </div>
+
+            {% if is_own %}
+            <a href="{{ url_for('profile.settings') }}" class="profile-edit-btn">
+                ✎ Editează profil
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ── STATS BAR ── -->
+    <div class="profile-stats-bar">
+        <div class="psb-item">
+            <span class="psb-val">{{ total_ratings }}</span>
+            <span class="psb-lbl">Filme votate</span>
+        </div>
+        <div class="psb-divider"></div>
+        <div class="psb-item">
+            <span class="psb-val">{{ avg_given }}</span>
+            <span class="psb-lbl">Rating mediu dat</span>
+        </div>
+        <div class="psb-divider"></div>
+        <div class="psb-item">
+            <span class="psb-val">{{ fav_genre }}</span>
+            <span class="psb-lbl">Gen preferat</span>
+        </div>
+        <div class="psb-divider"></div>
+        <div class="psb-item">
+            {% set pct = ((avg_given / 5) * 100) | int %}
+            <div class="psb-taste-bar">
+                <div class="psb-taste-fill" style="--w: {{ pct }}%"></div>
+            </div>
+            <span class="psb-lbl">Gust cinefil</span>
+        </div>
+    </div>
+
+    <div class="profile-body">
+
+        <!-- ── LEFT: RECENT RATINGS ── -->
+        <div class="profile-main">
+            <h2 class="section-title" style="margin-bottom:1.2rem">Filme votate recent</h2>
+
+            {% if recent %}
+            <div class="profile-ratings-grid">
+                {% for rating, movie in recent %}
+                <div class="pr-card" data-movie-id="{{ movie.id }}" data-rating-id="{{ rating.id }}">
+                    <a href="{{ url_for('movies.detail', movie_id=movie.id) }}" class="pr-card-link">
+                        <div class="pr-poster">
+                            {% if movie.poster_url %}
+                            <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" loading="lazy">
+                            {% else %}
+                            <div class="pr-poster-placeholder">🎬</div>
+                            {% endif %}
+                            <div class="pr-score" style="color: {% if rating.rating >= 4 %}#22c55e{% elif rating.rating >= 3 %}#f5c518{% else %}#ef4444{% endif %}">
+                                {{ rating.rating }}★
+                            </div>
+                        </div>
+                        <div class="pr-info">
+                            <p class="pr-title">{{ movie.clean_title() }}</p>
+                            <p class="pr-year">{{ movie.year or '—' }}</p>
+                        </div>
+                    </a>
+                    {% if is_own %}
+                    <button class="pr-delete-btn" onclick="deleteRating({{ movie.id }}, this)" title="Șterge rating">✕</button>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="profile-empty">
+                <p>Niciun film votat încă.</p>
+                <a href="{{ url_for('movies.index') }}" class="hero-cta" style="margin-top:1rem; display:inline-flex">
+                    Explorează filme →
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ── RIGHT: SIDEBAR ── -->
+        <div class="profile-sidebar">
+
+            <!-- Distribuția ratingurilor -->
+            <div class="psb-widget">
+                <h3 class="widget-title">Distribuție ratinguri</h3>
+                <div class="rating-dist">
+                    {% for star in ['5','4','3','2','1'] %}
+                    {% set count = rating_dist[star] %}
+                    {% set pct = ((count / total_ratings * 100) | int) if total_ratings > 0 else 0 %}
+                    <div class="rd-row">
+                        <span class="rd-star">{{ star }}★</span>
+                        <div class="rd-bar-track">
+                            <div class="rd-bar-fill" style="--w: {{ pct }}%; --c: {% if star == '5' %}#22c55e{% elif star == '4' %}#86efac{% elif star == '3' %}#f5c518{% elif star == '2' %}#fb923c{% else %}#ef4444{% endif %}"></div>
+                        </div>
+                        <span class="rd-count">{{ count }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Radar gen -->
+            {% if total_ratings > 0 %}
+            <div class="psb-widget">
+                <h3 class="widget-title">Preferințe gen</h3>
+                <canvas id="genreRadar" width="260" height="260"></canvas>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// Radar chart
+const radarCanvas = document.getElementById('genreRadar');
+if (radarCanvas) {
+    fetch('/api/profile/stats').then(r => r.json()).then(data => {
+        if (!data.labels.length) return;
+        new Chart(radarCanvas, {
+            type: 'radar',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    label: 'Rating mediu',
+                    data: data.data,
+                    backgroundColor: 'rgba(232,0,13,.15)',
+                    borderColor: '#e8000d',
+                    pointBackgroundColor: '#e8000d',
+                    pointRadius: 3,
+                }]
+            },
+            options: {
+                responsive: false,
+                scales: {
+                    r: {
+                        min: 0, max: 5, ticks: { stepSize: 1, color: '#666', font: { size: 9 } },
+                        grid: { color: 'rgba(255,255,255,.07)' },
+                        pointLabels: { color: '#aaa', font: { size: 10 } },
+                    }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    });
+}
+
+// Delete rating
+async function deleteRating(movieId, btn) {
+    if (!confirm('Ștergi ratingul pentru acest film?')) return;
+    const card = btn.closest('.pr-card');
+    const res  = await fetch(`/api/profile/delete-rating/${movieId}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+        card.style.opacity = '0';
+        card.style.transform = 'scale(.9)';
+        card.style.transition = 'all .3s';
+        setTimeout(() => card.remove(), 300);
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}Setări — CineMatch{% endblock %}
+
+{% block content %}
+<div class="settings-wrap">
+
+    <div class="settings-header">
+        <h1 class="settings-title">Setări cont</h1>
+        <a href="{{ url_for('profile.profile') }}" class="settings-back">← Profil</a>
+    </div>
+
+    <div class="settings-layout">
+
+        <!-- ── LEFT NAV ── -->
+        <nav class="settings-nav">
+            <a href="#profile"  class="snav-item snav-item--active" onclick="showTab('profile', this)">👤 Profil</a>
+            <a href="#avatar"   class="snav-item" onclick="showTab('avatar', this)">🎨 Avatar</a>
+            <a href="#email"    class="snav-item" onclick="showTab('email', this)">✉ Email</a>
+            <a href="#password" class="snav-item" onclick="showTab('password', this)">🔒 Parolă</a>
+        </nav>
+
+        <!-- ── RIGHT PANELS ── -->
+        <div class="settings-panels">
+
+            <!-- PROFIL -->
+            <div id="tab-profile" class="settings-panel settings-panel--active">
+                <h2 class="panel-title">Informații profil</h2>
+                <form method="POST">
+                    <input type="hidden" name="action" value="profile">
+
+                    <div class="sf-group">
+                        <label class="sf-label">Username</label>
+                        <input type="text" name="username" class="sf-input"
+                               value="{{ current_user.username }}" minlength="3" maxlength="80">
+                        <p class="sf-hint">Acesta va fi afișat public pe profilul tău.</p>
+                    </div>
+
+                    <div class="sf-group">
+                        <label class="sf-label">Bio</label>
+                        <textarea name="bio" class="sf-input sf-textarea" maxlength="300"
+                                  placeholder="Spune ceva despre tine...">{{ current_user.bio or '' }}</textarea>
+                        <p class="sf-hint">Max 300 caractere.</p>
+                    </div>
+
+                    <div class="sf-group">
+                        <label class="sf-label">Locație</label>
+                        <input type="text" name="location" class="sf-input"
+                               value="{{ current_user.location or '' }}"
+                               placeholder="Cluj-Napoca, România" maxlength="100">
+                    </div>
+
+                    <div class="sf-group">
+                        <label class="sf-label">Gen preferat</label>
+                        <select name="favorite_genre" class="sf-input sf-select">
+                            <option value="">— Alege —</option>
+                            {% for g in genres %}
+                            <option value="{{ g }}" {% if current_user.favorite_genre == g %}selected{% endif %}>{{ g }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <button type="submit" class="sf-btn">Salvează modificările</button>
+                </form>
+            </div>
+
+            <!-- AVATAR -->
+            <div id="tab-avatar" class="settings-panel">
+                <h2 class="panel-title">Culoare avatar</h2>
+                <p class="sf-hint" style="margin-bottom:1.5rem">Alege culoarea pentru avatarul tău.</p>
+
+                <!-- Preview -->
+                <div class="avatar-preview-wrap">
+                    <div class="avatar-preview" id="av-preview"
+                         style="background: {{ current_user.avatar_color or '#e8000d' }}">
+                        {{ current_user.initials }}
+                    </div>
+                    <span class="avatar-preview-label">{{ current_user.username }}</span>
+                </div>
+
+                <form method="POST" id="avatar-form">
+                    <input type="hidden" name="action" value="profile">
+                    <input type="hidden" name="username" value="{{ current_user.username }}">
+                    <input type="hidden" name="bio"      value="{{ current_user.bio or '' }}">
+                    <input type="hidden" name="location" value="{{ current_user.location or '' }}">
+                    <input type="hidden" name="favorite_genre" value="{{ current_user.favorite_genre or '' }}">
+                    <input type="hidden" name="avatar_color" id="av-color-input"
+                           value="{{ current_user.avatar_color or '#e8000d' }}">
+
+                    <div class="color-swatches">
+                        {% for color in avatar_colors %}
+                        <button type="button" class="color-swatch {% if (current_user.avatar_color or '#e8000d') == color %}color-swatch--active{% endif %}"
+                                style="background: {{ color }}"
+                                onclick="selectColor('{{ color }}', this)">
+                        </button>
+                        {% endfor %}
+                    </div>
+
+                    <button type="submit" class="sf-btn" style="margin-top:1.5rem">Salvează culoarea</button>
+                </form>
+            </div>
+
+            <!-- EMAIL -->
+            <div id="tab-email" class="settings-panel">
+                <h2 class="panel-title">Schimbă email</h2>
+                <form method="POST">
+                    <input type="hidden" name="action" value="email">
+                    <div class="sf-group">
+                        <label class="sf-label">Email curent</label>
+                        <input type="text" class="sf-input sf-input--disabled" value="{{ current_user.email }}" disabled>
+                    </div>
+                    <div class="sf-group">
+                        <label class="sf-label">Email nou</label>
+                        <input type="email" name="email" class="sf-input" required placeholder="nou@email.com">
+                    </div>
+                    <div class="sf-group">
+                        <label class="sf-label">Confirmă parola</label>
+                        <input type="password" name="password_confirm" class="sf-input" required placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="sf-btn">Schimbă email</button>
+                </form>
+            </div>
+
+            <!-- PASSWORD -->
+            <div id="tab-password" class="settings-panel">
+                <h2 class="panel-title">Schimbă parola</h2>
+                <form method="POST">
+                    <input type="hidden" name="action" value="password">
+                    <div class="sf-group">
+                        <label class="sf-label">Parola curentă</label>
+                        <input type="password" name="current_password" class="sf-input" required placeholder="••••••••">
+                    </div>
+                    <div class="sf-group">
+                        <label class="sf-label">Parola nouă</label>
+                        <input type="password" name="new_password" class="sf-input" required
+                               placeholder="Minim 6 caractere" minlength="6" id="pw-new">
+                        <div class="pw-strength" id="pw-strength"></div>
+                    </div>
+                    <div class="sf-group">
+                        <label class="sf-label">Confirmă parola nouă</label>
+                        <input type="password" name="confirm_password" class="sf-input" required
+                               placeholder="••••••••" id="pw-confirm">
+                        <p class="pw-match-msg" id="pw-match"></p>
+                    </div>
+                    <button type="submit" class="sf-btn">Schimbă parola</button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showTab(name, el) {
+    document.querySelectorAll('.settings-panel').forEach(p => p.classList.remove('settings-panel--active'));
+    document.querySelectorAll('.snav-item').forEach(a => a.classList.remove('snav-item--active'));
+    document.getElementById('tab-' + name).classList.add('settings-panel--active');
+    el.classList.add('snav-item--active');
+    event.preventDefault();
+}
+
+function selectColor(color, btn) {
+    document.getElementById('av-color-input').value = color;
+    document.getElementById('av-preview').style.background = color;
+    document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('color-swatch--active'));
+    btn.classList.add('color-swatch--active');
+}
+
+// Password strength
+const pwNew = document.getElementById('pw-new');
+const pwConfirm = document.getElementById('pw-confirm');
+if (pwNew) {
+    pwNew.addEventListener('input', () => {
+        const val = pwNew.value;
+        const el  = document.getElementById('pw-strength');
+        let strength = 0;
+        if (val.length >= 6)  strength++;
+        if (val.length >= 10) strength++;
+        if (/[A-Z]/.test(val)) strength++;
+        if (/[0-9]/.test(val)) strength++;
+        if (/[^a-zA-Z0-9]/.test(val)) strength++;
+        const labels = ['', 'Slabă', 'Acceptabilă', 'Bună', 'Puternică', 'Excelentă'];
+        const colors = ['', '#ef4444', '#f97316', '#f5c518', '#22c55e', '#22c55e'];
+        el.innerHTML = strength > 0
+            ? `<span style="color:${colors[strength]}">${labels[strength]}</span>`
+            : '';
+    });
+    pwConfirm.addEventListener('input', () => {
+        const el = document.getElementById('pw-match');
+        if (!pwConfirm.value) { el.textContent = ''; return; }
+        const match = pwNew.value === pwConfirm.value;
+        el.textContent = match ? '✓ Parolele coincid' : '✗ Parolele nu coincid';
+        el.style.color  = match ? '#22c55e' : '#ef4444';
+    });
+}
+
+// Open tab from hash
+const hash = location.hash.replace('#', '');
+if (hash) {
+    const el = document.querySelector(`.snav-item[href="#${hash}"]`);
+    if (el) showTab(hash, el);
+}
+</script>
+{% endblock %}

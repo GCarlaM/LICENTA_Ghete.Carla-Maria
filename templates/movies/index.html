@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% block title %}CineMatch — Descoperă Cinema{% endblock %}
+
+{% block content %}
+
+<!-- ═══ HERO ═══ -->
+{% if hero_movie %}
+<section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-noise"></div>
+    {% if hero_movie.poster_url %}
+    <div class="hero-backdrop" style="background-image: url('{{ hero_movie.poster_url }}')"></div>
+    {% endif %}
+
+    <div class="hero-content">
+        <div class="hero-eyebrow">
+            <span class="hero-badge">🆕 Lansare recentă</span>
+            {% for g in hero_movie.genres_list()[:2] %}
+            <span class="hero-genre">{{ g }}</span>
+            {% endfor %}
+        </div>
+        <h1 class="hero-title">{{ hero_movie.clean_title() }}</h1>
+        {% if hero_movie.overview %}
+        <p class="hero-overview">{{ hero_movie.overview[:200] }}{% if hero_movie.overview|length > 200 %}…{% endif %}</p>
+        {% endif %}
+        {% if hero_movie.cast %}
+        <p class="hero-cast"><span class="hero-cast-label">Cu:</span> {{ hero_movie.cast }}</p>
+        {% endif %}
+        <div class="hero-meta">
+            <span class="hero-rating">{{ "%.1f"|format(hero_movie.avg_rating) }} / 5</span>
+            <span class="hero-dot">·</span>
+            <span>{{ hero_movie.year }}</span>
+            <span class="hero-dot">·</span>
+            <span>{{ "{:,}".format(hero_movie.num_ratings) }} ratinguri</span>
+        </div>
+        <a href="{{ url_for('movies.detail', movie_id=hero_movie.id) }}" class="hero-cta">
+            Vezi detalii <span>→</span>
+        </a>
+    </div>
+
+    <div class="hero-poster">
+        <div class="poster-frame">
+            {% if hero_movie.poster_url %}
+            <img src="{{ hero_movie.poster_url }}" alt="{{ hero_movie.clean_title() }}" class="hero-poster-img">
+            {% else %}
+            <div class="poster-inner">
+                <div class="poster-icon">🎬</div>
+                <div class="poster-title">{{ hero_movie.clean_title() }}</div>
+            </div>
+            {% endif %}
+            <div class="poster-rating-badge">{{ "%.1f"|format(hero_movie.avg_rating) }}</div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- ═══ BROWSE WRAPPER ═══ -->
+<section class="browse-section">
+
+    <!-- Search + Genre pills (mereu vizibile) -->
+    <div class="browse-header">
+        <form class="search-bar" method="GET">
+            <div class="search-input-wrap">
+                <span class="search-icon">⌕</span>
+                <input type="text" name="q" placeholder="Caută film..." value="{{ search_query }}" class="search-input">
+            </div>
+        </form>
+    </div>
+    <div class="genre-pills" style="margin-bottom: 2.5rem;">
+        <a href="{{ url_for('movies.index') }}"
+           class="pill {% if not selected_genre and not search_query %}pill--active{% endif %}">Toate</a>
+        {% for genre in genres %}
+        <a href="{{ url_for('movies.index', genre=genre) }}"
+           class="pill {% if selected_genre == genre %}pill--active{% endif %}">{{ genre }}</a>
+        {% endfor %}
+    </div>
+
+    <!-- ══ MODE: SEARCH / FILTER ══ -->
+    {% if mode == "search" %}
+    <div class="browse-header" style="margin-bottom:1.5rem;">
+        <h2 class="section-title">
+            {% if search_query %}Rezultate pentru „{{ search_query }}"
+            {% else %}{{ selected_genre }}
+            {% endif %}
+        </h2>
+    </div>
+    <div class="movies-grid">
+        {% for movie in movies.items %}
+        <a href="{{ url_for('movies.detail', movie_id=movie.id) }}" class="movie-card" style="--card-i: {{ loop.index }}">
+            <div class="card-poster">
+                {% if movie.poster_url %}
+                <img src="{{ movie.poster_url }}" alt="{{ movie.clean_title() }}" class="card-poster-img" loading="lazy">
+                {% else %}
+                <div class="card-poster-inner"><span class="card-emoji">🎬</span></div>
+                {% endif %}
+                <div class="card-overlay"><span class="card-play">▶</span></div>
+                <div class="card-rating-chip">{{ "%.1f"|format(movie.avg_rating) }}</div>
+            </div>
+            <div class="card-body">
+                <h3 class="card-title">{{ movie.clean_title() }}</h3>
+                <div class="card-meta">
+                    <span class="card-year">{{ movie.year or "—" }}</span>
+                    <span class="card-genres">{{ movie.genres_list()[:2] | join(" · ") }}</span>
+                </div>
+            </div>
+        </a>
+        {% else %}
+        <div class="empty-results"><p>Niciun film găsit.</p></div>
+        {% endfor %}
+    </div>
+    {% if movies and movies.pages > 1 %}
+    <div class="pagination">
+        {% if movies.has_prev %}
+        <a href="{{ url_for('movies.index', page=movies.prev_num, q=search_query, genre=selected_genre) }}" class="page-btn">← Anterior</a>
+        {% endif %}
+        <span class="page-info">{{ movies.page }} / {{ movies.pages }}</span>
+        {% if movies.has_next %}
+        <a href="{{ url_for('movies.index', page=movies.next_num, q=search_query, genre=selected_genre) }}" class="page-btn">Următor →</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- ══ MODE: HOME ══ -->
+    {% else %}
+
+    <!-- SECTIUNEA 1: RECOMANDATE PERSONAL -->
+    {% if recommended %}
+    <div class="home-section">
+        <div class="home-section-header">
+            <h2 class="home-section-title">🎯 Recomandate pentru tine</h2>
+            <span class="home-section-sub">Bazat pe filmele pe care le-ai apreciat</span>
+        </div>
+        <div class="movies-row">
+            {% for movie in recommended %}
+            <a href="{{ url_for('movies.detail', movie_id=movie.id) }}" class="movie-card" style="--card-i: {{ loop.index }}">
+                <div class="card-poster">
+                    {% if movie.poster_url %}
+                    <img src="{{ movie.poster_url }}" alt="{{ movie.clean_title() }}" class="card-poster-img" loading="lazy">
+                    {% else %}
+                    <div class="card-poster-inner"><span class="card-emoji">🎬</span></div>
+                    {% endif %}
+                    <div class="card-overlay"><span class="card-play">▶</span></div>
+                    <div class="card-rec-badge">🎯 Pentru tine</div>
+                    <div class="card-rating-chip">{{ "%.1f"|format(movie.avg_rating) }}</div>
+                </div>
+                <div class="card-body">
+                    <h3 class="card-title">{{ movie.clean_title() }}</h3>
+                    <div class="card-meta">
+                        <span class="card-year">{{ movie.year or "—" }}</span>
+                        <span class="card-genres">{{ movie.genres_list()[:2] | join(" · ") }}</span>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% elif current_user.is_authenticated %}
+    <div class="home-section">
+        <div class="home-section-header">
+            <h2 class="home-section-title">🎯 Recomandări personale</h2>
+        </div>
+        <div style="background: var(--surface); border: 1px dashed var(--border); border-radius: 12px; padding: 2rem; text-align: center; color: var(--muted);">
+            <p>Votează cel puțin 3 filme și îți vom recomanda altele similare.</p>
+            <p style="font-size:.85rem; margin-top:.5rem;">Cu cât votezi mai multe, cu atât recomandările sunt mai precise.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- SECTIUNEA 2: POPULARE -->
+    <div class="home-section">
+        <div class="home-section-header">
+            <h2 class="home-section-title">🔥 Cele mai populare</h2>
+            <span class="home-section-sub">Cele mai votate filme din toate timpurile</span>
+        </div>
+        <div class="movies-row">
+            {% for movie in popular %}
+            <a href="{{ url_for('movies.detail', movie_id=movie.id) }}" class="movie-card" style="--card-i: {{ loop.index }}">
+                <div class="card-poster">
+                    {% if movie.poster_url %}
+                    <img src="{{ movie.poster_url }}" alt="{{ movie.clean_title() }}" class="card-poster-img" loading="lazy">
+                    {% else %}
+                    <div class="card-poster-inner"><span class="card-emoji">🎬</span></div>
+                    {% endif %}
+                    <div class="card-overlay"><span class="card-play">▶</span></div>
+                    <div class="card-rating-chip">{{ "%.1f"|format(movie.avg_rating) }}</div>
+                </div>
+                <div class="card-body">
+                    <h3 class="card-title">{{ movie.clean_title() }}</h3>
+                    <div class="card-meta">
+                        <span class="card-year">{{ movie.year or "—" }}</span>
+                        <span class="card-genres">{{ movie.genres_list()[:2] | join(" · ") }}</span>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- SECTIUNEA 3: RECENTE -->
+    {% if recent %}
+    <div class="home-section">
+        <div class="home-section-header">
+            <h2 class="home-section-title">🆕 Lansări recente</h2>
+            <span class="home-section-sub">Cele mai recente apariții (2023–2026)</span>
+        </div>
+        <div class="movies-row">
+            {% for movie in recent %}
+            <a href="{{ url_for('movies.detail', movie_id=movie.id) }}" class="movie-card" style="--card-i: {{ loop.index }}">
+                <div class="card-poster">
+                    {% if movie.poster_url %}
+                    <img src="{{ movie.poster_url }}" alt="{{ movie.clean_title() }}" class="card-poster-img" loading="lazy">
+                    {% else %}
+                    <div class="card-poster-inner"><span class="card-emoji">🎬</span></div>
+                    {% endif %}
+                    <div class="card-overlay"><span class="card-play">▶</span></div>
+                    <div class="card-new-badge">Nou</div>
+                    <div class="card-rating-chip">{{ "%.1f"|format(movie.avg_rating) }}</div>
+                </div>
+                <div class="card-body">
+                    <h3 class="card-title">{{ movie.clean_title() }}</h3>
+                    <div class="card-meta">
+                        <span class="card-year">{{ movie.year or "—" }}</span>
+                        <span class="card-genres">{{ movie.genres_list()[:2] | join(" · ") }}</span>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% endif %} {# end mode #}
+
+</section>
+{% endblock %}
